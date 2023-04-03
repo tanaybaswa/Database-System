@@ -1,5 +1,8 @@
 package edu.berkeley.cs186.database.concurrency;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Utility methods to track the relationships between different lock types.
  */
@@ -11,6 +14,16 @@ public enum LockType {
     SIX, // shared intention exclusive
     NL;  // no lock held
 
+
+    public static Map<LockType, Integer> dict = new HashMap<LockType, Integer>(){{
+        put(NL, 0);
+        put(IS, 1);
+        put(IX, 2);
+        put(S, 3);
+        put(SIX, 4);
+        put(X, 5);
+    }};
+
     /**
      * This method checks whether lock types A and B are compatible with
      * each other. If a transaction can hold lock type A on a resource
@@ -21,9 +34,17 @@ public enum LockType {
         if (a == null || b == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
 
-        return false;
+
+        int[][] matrix = {{1, 1, 1, 1, 1, 1},
+                {1, 1, 1, 1, 1, 0},
+                {1, 1, 1, 0, 0, 0},
+                {1, 1, 0, 1, 0, 0},
+                {1, 1, 0, 0, 0, 0},
+                {1, 0, 0, 0, 0, 0}};
+
+
+        return matrix[dict.get(a)][dict.get(b)] == 1;
     }
 
     /**
@@ -53,9 +74,16 @@ public enum LockType {
         if (parentLockType == null || childLockType == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
 
-        return false;
+        int[][] matrix = {{1, 0, 0, 0, 0, 0},
+                {1, 1, 0, 1, 0, 0},
+                {1, 1, 1, 1, 1, 1},
+                {1, 0, 0, 0, 0, 0},
+                {1, 0, 1, 0, 0, 1},
+                {1, 0, 0, 0, 0, 0}};
+
+
+        return matrix[dict.get(parentLockType)][dict.get(childLockType)] == 1;
     }
 
     /**
@@ -68,9 +96,16 @@ public enum LockType {
         if (required == null || substitute == null) {
             throw new NullPointerException("null lock type");
         }
-        // TODO(proj4_part1): implement
 
-        return false;
+        int[][] matrix = {{1, 0, 0, 0, 0, 0},
+                {1, 1, 0, 0, 0, 0},
+                {1, 1, 1, 0, 0, 0},
+                {1, 0, 0, 1, 0, 0},
+                {1, 0, 0, 1, 1, 0},
+                {1, 0, 0, 1, 0, 1}};
+
+
+        return matrix[dict.get(substitute)][dict.get(required)] == 1;
     }
 
     /**

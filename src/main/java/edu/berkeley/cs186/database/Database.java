@@ -930,8 +930,13 @@ public class Database implements AutoCloseable {
         @Override
         public void close() {
             try {
-                // TODO(proj4_part2)
-                return;
+                List<Lock> locks = lockManager.getLocks(this);
+
+                for (int i = locks.size() - 1; i >= 0; i--) {
+                    LockContext l = LockContext.fromResourceName(lockManager, locks.get(i).name);
+                    l.release(this);
+                }
+
             } catch (Exception e) {
                 // There's a chance an error message from your release phase
                 // logic can get suppressed. This guarantees that the stack

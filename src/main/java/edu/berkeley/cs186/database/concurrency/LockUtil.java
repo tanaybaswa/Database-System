@@ -2,6 +2,8 @@ package edu.berkeley.cs186.database.concurrency;
 
 import edu.berkeley.cs186.database.TransactionContext;
 
+import java.util.*;
+
 /**
  * LockUtil is a declarative layer which simplifies multigranularity lock
  * acquisition for the user (you, in the last task of Part 2). Generally
@@ -41,9 +43,64 @@ public class LockUtil {
         LockType effectiveLockType = lockContext.getEffectiveLockType(transaction);
         LockType explicitLockType = lockContext.getExplicitLockType(transaction);
 
-        // TODO(proj4_part2): implement
-        return;
-    }
+        if (LockType.substitutable(effectiveLockType, requestType)) {
+            return;
+        }
 
-    // TODO(proj4_part2) add any helper methods you want
+        Deque<LockContext> ancestors = new ArrayDeque<>();
+        for(LockContext p = parentContext; p != null; p = p.parentContext()){
+            ancestors.addFirst(p);
+        }
+
+        if (requestType.equals(LockType.S)) {
+
+            for (LockContext ancestor : ancestors) {
+                LockType l = ancestor.getExplicitLockType(transaction);
+                if (l.equals(LockType.NL)) {
+                    ancestor.acquire(transaction, LockType.IS);
+                }
+            }
+
+            if (explicitLockType.equals(LockType.IS)) {
+                lockContext.escalate(transaction);
+
+            } else if (explicitLockType.equals(LockType.NL)) {
+                lockContext.acquire(transaction, requestType);
+
+            } else if (explicitLockType.equals(LockType.IX)){
+                lockContext.promote(transaction, LockType.SIX);
+            }
+
+
+        } else {
+
+            for (LockContext ancestor : ancestors) {
+
+                LockType l = ancestor.getExplicitLockType(transaction);
+
+                if (l.equals(LockType.NL)) {
+                    ancestor.acquire(transaction, LockType.IX);
+
+                } else if (l.equals(LockType.IS)) {
+                    ancestor.promote(transaction, LockType.IX);
+
+                } else if (l.equals(LockType.S)) {
+                    ancestor.promote(transaction, LockType.SIX);
+                }
+            }
+            if (explicitLockType.equals(LockType.NL)) {
+                lockContext.acquire(transaction, requestType);
+
+            } else if (explicitLockType.equals(LockType.IS)) {
+                lockContext.escalate(transaction);
+                lockContext.promote(transaction, LockType.X);
+
+            } else if (explicitLockType.equals(LockType.S)) {
+                lockContext.promote(transaction, LockType.X);
+
+            } else {
+                lockContext.escalate(transaction);
+            }
+        }
+    }
 }
